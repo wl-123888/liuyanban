@@ -125,18 +125,9 @@ exports.main_handler = function (event, context) {
 
   // GET /api/classes
   if (epath === '/api/classes') {
-    var forceReset = query.reset === '1';
-    if (forceReset) {
-      managedClasses = [];
-      classesRecovered = false;
-    }
-    if (classesRecovered && !forceReset) {
-      return Promise.resolve(jsonReply({ ok: true, data: managedClasses.slice(), ver: 5 }));
-    }
-    // Recover managedClasses from __CLASS__ / __UNCLASS__ marker messages
+    // Always recover from DB markers to keep multiple SCF instances consistent
     return callCloudFunction('parentAPI', { action: 'getMessages', data: { limit: 500 } }).then(function (r) {
-      classesRecovered = true;
-      managedClasses = [];
+      var classes = [];
       if (r && r.data) {
         var clsCount = {}, unclassCount = {};
         r.data.forEach(function (m) {
@@ -146,12 +137,14 @@ exports.main_handler = function (event, context) {
           if (m.content === '__UNCLASS__') unclassCount[cc] = (unclassCount[cc] || 0) + 1;
         });
         Object.keys(clsCount).forEach(function (c) {
-          if ((clsCount[c] || 0) > (unclassCount[c] || 0)) managedClasses.push(c);
+          if ((clsCount[c] || 0) > (unclassCount[c] || 0)) classes.push(c);
         });
       }
-      return jsonReply({ ok: true, data: managedClasses.slice(), ver: 5 });
-    }).catch(function () {
+      managedClasses = classes;
       classesRecovered = true;
+      return jsonReply({ ok: true, data: classes, ver: 5 });
+    }).catch(function () {
+      // Fallback to in-memory list if cloud function fails
       return jsonReply({ ok: true, data: managedClasses.slice(), ver: 5 });
     });
   }
