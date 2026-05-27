@@ -163,8 +163,8 @@ exports.main_handler = function (event, context) {
       data: { class_code: query.class_code || '', limit: parseInt(query.limit) || 30 }
     }).then(function (r) {
       if (r && r.data) {
-        // Filter out class marker messages from display
-        r.data = r.data.filter(function (m) { return !m.content || m.content.indexOf('__CLASS__') !== 0; });
+        // Filter out system marker messages from display
+        r.data = r.data.filter(function (m) { return !m.content || (m.content.indexOf('__CLASS__') !== 0 && m.content.indexOf('__UNCLASS__') !== 0); });
         // Parent privacy filter
         if (query.parent_id) {
           r.data = r.data.filter(function (m) { return m.parent_id === query.parent_id; });
