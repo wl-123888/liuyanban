@@ -109,7 +109,7 @@ function isToday(d){ return new Date(d).toDateString() === new Date().toDateStri
 // ====== Message management ======
 function loadClasses(){
   api('/api/classes').then(function(r){
-    var classes = (r && r.classes) ? r.classes : [];
+    var classes = ((r && r.data) ? r.data : []) || ((r && r.classes) ? r.classes : []);
     var sel = document.getElementById('selClass');
     var cur = sel.value;
     sel.innerHTML = '<option value="">全部班级</option>';
@@ -169,7 +169,7 @@ function delAll(){
 // ====== Class management ======
 function loadClassList(){
   api('/api/classes').then(function(r){
-    var classes = (r && r.classes) ? r.classes : [];
+    var classes = ((r && r.data) ? r.data : []) || ((r && r.classes) ? r.classes : []);
     var html = '';
     classes.forEach(function(c){ html += '<div class="ctag"><span>'+esc(c)+'</span><span class="ctag-del" onclick="removeClass(\''+escAttr(c)+'\')" title="删除">×</span></div>'; });
     document.getElementById('clist').innerHTML = html || '<div class="emp">暂无班级，请添加</div>';
