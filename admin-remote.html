@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>留言管理后台</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;background:#F5F7FA;color:#333;min-height:100vh;display:flex;flex-direction:column;align-items:center}
+.ct{width:100%;max-width:480px;padding:24px 20px 40px}
+.hd{text-align:center;margin-bottom:20px;padding-top:16px}
+.tl{font-size:22px;font-weight:700;color:#4A90D9;margin-bottom:4px}
+.tabs{display:flex;gap:0;margin-bottom:20px;background:#E8ECF1;border-radius:10px;padding:3px}
+.tab{flex:1;text-align:center;padding:10px 0;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;color:#888;transition:all .2s}
+.tab.active{background:#fff;color:#4A90D9;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.panel{display:none}.panel.active{display:block}
+
+/* Class management */
+.add-row{display:flex;gap:8px;margin-bottom:12px}
+.add-row input{flex:1;height:42px;border:1px solid #ddd;border-radius:8px;padding:0 12px;font-size:14px;outline:none}
+.add-row input:focus{border-color:#4A90D9}
+.add-row button{height:42px;padding:0 18px;background:#4A90D9;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;font-weight:500}
+.clist{display:flex;flex-wrap:wrap;gap:8px}
+.ctag{display:flex;align-items:center;gap:8px;background:#fff;border-radius:8px;padding:6px 12px;font-size:14px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.ctag-del{color:#E74C3C;cursor:pointer;font-size:18px;line-height:1}
+
+/* Message management */
+.sel-row{display:flex;gap:8px;margin-bottom:14px;align-items:center}
+.sel-row select{flex:1;height:42px;border:1px solid #ddd;border-radius:8px;padding:0 12px;font-size:14px;outline:none;background:#fff}
+.sel-row button{height:42px;padding:0 16px;border:none;border-radius:8px;font-size:13px;cursor:pointer;font-weight:500}
+.btn-refresh{background:#4A90D9;color:#fff}
+.btn-clear{background:#fff;color:#E74C3C;border:1px solid #E74C3C}
+.lst{display:flex;flex-direction:column;gap:8px}
+.itm{background:#fff;border-radius:10px;padding:14px 16px;box-shadow:0 1px 4px rgba(0,0,0,.04);display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.itm-l{flex:1;min-width:0}
+.ctt{font-size:15px;line-height:1.6;word-break:break-all}
+.tme{font-size:11px;color:#bbb;margin-top:6px}
+.del{flex-shrink:0;color:#E74C3C;font-size:13px;cursor:pointer;padding:4px 12px;border:1px solid #E74C3C;border-radius:6px;background:#fff;white-space:nowrap}
+.del:active{background:#FDEAEA}
+.emp{text-align:center;color:#ccc;font-size:14px;padding:32px 0}
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);padding:10px 24px;border-radius:20px;font-size:14px;z-index:999;opacity:0;pointer-events:none;transition:opacity .3s;color:#fff}
+.toast.show{opacity:1}.toast.success{background:#52C41A}.toast.error{background:#E74C3C}
+.about{text-align:center;font-size:11px;color:#bbb;margin-top:24px}
+@media (max-width:400px){.ct{padding:16px 14px 32px}}
+</style>
+</head>
+<body>
+<div class="toast" id="toast"></div>
+
+<div class="ct">
+  <div class="hd">
+    <div class="tl">留言管理后台</div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('msgs')">留言管理</div>
+    <div class="tab" onclick="switchTab('cls')">班级管理</div>
+  </div>
+
+  <!-- Message panel -->
+  <div class="panel active" id="panelMsgs">
+    <div class="sel-row">
+      <select id="selClass" onchange="loadMsgs()"><option value="">全部班级</option></select>
+      <button class="btn-refresh" onclick="loadMsgs()">刷新</button>
+    </div>
+    <div class="sel-row" style="margin-bottom:14px">
+      <span style="font-size:13px;color:#888">今日 <b id="cnt">0</b> 条</span>
+      <span style="flex:1"></span>
+      <button class="btn-clear" id="btnClear" style="display:none" onclick="delAll()">清空今日全部</button>
+    </div>
+    <div class="lst" id="lst"><div class="emp">请选择班级后点击刷新</div></div>
+  </div>
+
+  <!-- Class panel -->
+  <div class="panel" id="panelCls">
+    <div class="add-row">
+      <input type="text" id="iptClass" placeholder="输入班级名称，如 三年级(1)班" maxlength="30">
+      <button onclick="addClass()">添加</button>
+    </div>
+    <div class="clist" id="clist"><div class="emp">加载中...</div></div>
+    <div style="font-size:11px;color:#bbb;margin-top:12px;text-align:center">添加后家长端立即可见，删除班级不影响已有留言</div>
+  </div>
+
+  <div class="about">数据存储于微信云服务 · 境内</div>
+</div>
+
+<script>
+var API = 'https://1437238162-ho33k071it.ap-guangzhou.tencentscf.com';
+var toast = document.getElementById('toast');
+var currentTab = 'msgs';
+
+function switchTab(t) {
+  currentTab = t;
+  document.querySelectorAll('.tab').forEach(function(el,i){
+    el.classList.toggle('active', (i===0 && t==='msgs') || (i===1 && t==='cls'));
+  });
+  document.getElementById('panelMsgs').classList.toggle('active', t==='msgs');
+  document.getElementById('panelCls').classList.toggle('active', t==='cls');
+  if (t==='msgs') { loadClasses(); loadMsgs(); }
+  if (t==='cls') loadClassList();
+}
+
+function api(path, options) {
+  return fetch(API + path, options).then(function(r){ return r.json(); });
+}
+
+function isToday(d){ return new Date(d).toDateString() === new Date().toDateString(); }
+
+// ====== Message management ======
+function loadClasses(){
+  api('/api/classes').then(function(r){
+    var classes = (r && r.classes) ? r.classes : [];
+    var sel = document.getElementById('selClass');
+    var cur = sel.value;
+    sel.innerHTML = '<option value="">全部班级</option>';
+    classes.forEach(function(c){ sel.innerHTML += '<option value="'+escAttr(c)+'"'+(c===cur?' selected':'')+'>'+esc(c)+'</option>'; });
+  }).catch(function(){});
+}
+
+function loadMsgs(){
+  var cls = document.getElementById('selClass').value;
+  var url = '/api/messages?limit=200';
+  if (cls) url += '&class_code=' + encodeURIComponent(cls);
+  api(url).then(function(r){
+    var msgs = (r && r.data) ? r.data.filter(function(m){ return isToday(m.createTime||m.time); }) : [];
+    var lst = document.getElementById('lst');
+    var cnt = document.getElementById('cnt');
+    var btnClear = document.getElementById('btnClear');
+    cnt.textContent = msgs.length;
+    btnClear.style.display = msgs.length > 0 ? '' : 'none';
+    if (!msgs.length) { lst.innerHTML = '<div class="emp">今日暂无留言</div>'; return; }
+    lst.innerHTML = msgs.reverse().map(function(m, i){
+      var mid = m._id || m.id || i;
+      return '<div class="itm" id="m'+i+'"><div class="itm-l"><div class="ctt">'+esc(m.content)+'</div><div class="tme">'+fmt(m.createTime||m.time)+'</div></div><span class="del" onclick="delMsg(\''+escAttr(mid)+'\','+i+')">删除</span></div>';
+    }).join('');
+  }).catch(function(){ document.getElementById('lst').innerHTML = '<div class="emp">加载失败，请检查网络</div>'; });
+}
+
+function delMsg(id, idx){
+  if(!confirm('确认删除这条留言？'))return;
+  api('/api/admin/delete-message',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({id:id})
+  }).then(function(r){
+    if(r.ok||r.local){
+      showToast('已删除','success');
+      var el=document.getElementById('m'+idx);
+      if(el){ el.style.opacity='0'; el.style.transition='opacity .2s'; setTimeout(function(){ el.remove(); var cnt=document.getElementById('cnt'); var n=parseInt(cnt.textContent)-1; cnt.textContent=Math.max(0,n); if(n<=0)document.getElementById('btnClear').style.display='none'; },200); }
+    } else { showToast('删除失败','error'); }
+  }).catch(function(){ showToast('网络错误','error'); });
+}
+
+function delAll(){
+  var items=document.querySelectorAll('#lst .itm');
+  if(!items.length)return;
+  if(!confirm('确认删除今日所有 '+items.length+' 条留言？此操作不可恢复！'))return;
+  var promises=[];
+  items.forEach(function(el){
+    var btn=el.querySelector('.del');
+    if(btn){
+      var mid=btn.getAttribute('onclick').match(/'([^']+)'/);
+      if(mid) promises.push(api('/api/admin/delete-message',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:mid[1]})}));
+    }
+  });
+  Promise.all(promises).then(function(){ showToast('已清空','success'); loadMsgs(); }).catch(function(){ showToast('部分删除失败','error'); loadMsgs(); });
+}
+
+// ====== Class management ======
+function loadClassList(){
+  api('/api/classes').then(function(r){
+    var classes = (r && r.classes) ? r.classes : [];
+    var html = '';
+    classes.forEach(function(c){ html += '<div class="ctag"><span>'+esc(c)+'</span><span class="ctag-del" onclick="removeClass(\''+escAttr(c)+'\')" title="删除">×</span></div>'; });
+    document.getElementById('clist').innerHTML = html || '<div class="emp">暂无班级，请添加</div>';
+    // Also refresh the dropdown
+    var sel = document.getElementById('selClass');
+    var cur = sel.value;
+    sel.innerHTML = '<option value="">全部班级</option>';
+    classes.forEach(function(c){ sel.innerHTML += '<option value="'+escAttr(c)+'"'+(c===cur?' selected':'')+'>'+esc(c)+'</option>'; });
+  }).catch(function(){ document.getElementById('clist').innerHTML = '<div class="emp">加载失败</div>'; });
+}
+
+function addClass(){
+  var ipt=document.getElementById('iptClass');
+  var name=ipt.value.trim();
+  if(!name)return;
+  api('/api/admin/add-class',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:name})})
+  .then(function(r){
+    if(r.ok){ ipt.value=''; showToast('已添加','success'); loadClassList(); }
+    else showToast('添加失败: '+(r.msg||'未知错误'),'error');
+  }).catch(function(){ showToast('网络错误','error'); });
+}
+
+function removeClass(name){
+  if(!confirm('确认删除班级 "'+name+'"？'))return;
+  api('/api/admin/remove-class',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:name})})
+  .then(function(r){
+    if(r.ok){ showToast('已删除','success'); loadClassList(); }
+    else showToast('删除失败: '+(r.msg||'未知错误'),'error');
+  }).catch(function(){ showToast('网络错误','error'); });
+}
+
+// ====== Common ======
+function showToast(m,t){ toast.textContent=m; toast.className='toast '+t+' show'; setTimeout(function(){ toast.className='toast'; },2000); }
+function esc(t){ var d=document.createElement('div'); d.textContent=t; return d.innerHTML; }
+function escAttr(t){ return t.replace(/'/g,"\\'").replace(/"/g,'&quot;'); }
+function fmt(d){ var dt=new Date(d); return dt.getHours().toString().padStart(2,'0')+':'+dt.getMinutes().toString().padStart(2,'0'); }
+
+// Enter key to add class
+document.getElementById('iptClass').addEventListener('keydown',function(e){ if(e.key==='Enter')addClass(); });
+
+// Init
+loadClasses();
+loadClassList();
+</script>
+</body>
+</html>
