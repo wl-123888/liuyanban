@@ -16,7 +16,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .clist{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}
 .citem{background:var(--c);border-radius:var(--r);padding:16px 20px;box-shadow:0 2px 8px rgba(0,0,0,.06);cursor:pointer;text-align:center;min-width:100px;transition:all .15s;font-size:16px;font-weight:500;user-select:none}
 .citem:active{transform:scale(.95);background:#EEF4FB}
-.cadd{background:none;border:2px dashed #ccc;box-shadow:none;color:var(--t2);font-size:14px}
 .cback{display:block;text-align:center;color:var(--p);font-size:14px;margin-top:18px;cursor:pointer}
 .icd{background:var(--c);border-radius:var(--r);padding:20px;box-shadow:0 2px 12px rgba(0,0,0,.06)}
 .cod{font-size:13px;color:var(--p);margin-bottom:12px;font-weight:500}
@@ -46,6 +45,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
   <div class="hd"><div class="ic">💬</div><div class="tl">家长留言板</div><div class="sub">选择孩子所在班级</div></div>
   <div class="clist" id="clist"></div>
   <div class="note">留言实时显示在教室大屏上</div>
+  <div class="note" style="font-size:11px;color:#aaa;max-width:420px;margin:16px auto 0;line-height:1.6">本留言板仅用于班级接送、物品领取通知，仅留存学生姓名及留言内容，数据存储于境内微信云服务。留言内容仅本班家长、老师可见，闲置数据会定期清理。请勿发布无关、违规言论。</div>
 </div>
 
 <div class="ct hide" id="page2">
@@ -56,10 +56,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
     <div class="ft"><span class="ctr" id="ctr">0/200</span><a class="cback" onclick="goBack()">&#8592; 切换班级</a></div>
   </div>
   <button class="btn" id="btn" disabled>发送到教室大屏</button>
-  <div class="rec"><div class="rtl">📋 最近留言</div>
+  <div class="rec"><div class="rtl">📋 我的留言</div>
     <div class="lst" id="lst"><div class="emp">暂无留言</div></div>
   </div>
   <div class="note">请勿发送孩子全名，建议用称呼</div>
+  <div class="note" style="font-size:11px;color:#aaa;max-width:420px;margin:16px auto 0;line-height:1.6">本留言板仅用于班级接送、物品领取通知，仅留存学生姓名及留言内容，数据存储于境内微信云服务。留言内容仅本班家长、老师可见，闲置数据会定期清理。请勿发布无关、违规言论。</div>
 </div>
 
 <script>
@@ -71,6 +72,13 @@ var cod=document.getElementById('cod'),ipt=document.getElementById('ipt');
 var ctr=document.getElementById('ctr'),btn=document.getElementById('btn');
 var lst=document.getElementById('lst'),toast=document.getElementById('toast');
 var currentClass='';
+
+// Generate anonymous parent ID (persisted in localStorage)
+var parentId = localStorage.getItem('parent_id');
+if (!parentId) {
+  parentId = 'p_' + Date.now() + '_' + Math.random().toString(36).slice(2, 10);
+  localStorage.setItem('parent_id', parentId);
+}
 
 function api(path, options) {
   return fetch(API_BASE + path, options).then(function(r) { return r.json(); });
@@ -87,15 +95,9 @@ function loadClasses() {
         (c === saved ? ' <span style="font-size:11px;color:#999">上次</span>' : '') + '</div>';
     });
     clist.innerHTML = html || '<div class="emp">暂无可选班级</div>';
-    clist.innerHTML += '<div class="citem cadd" onclick="addNewClass()">+ 其他班级</div>';
   }).catch(function() {
     clist.innerHTML = '<div class="emp">加载失败，请刷新重试</div>';
   });
-}
-
-function addNewClass() {
-  var c = prompt('请输入班级名（如：三(1)班）：');
-  if (c && c.trim()) selectClass(c.trim());
 }
 
 function selectClass(cls) {
@@ -130,7 +132,7 @@ btn.addEventListener('click', function() {
   api('/api/submit', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ content: c, class_code: currentClass })
+    body: JSON.stringify({ content: c, class_code: currentClass, parent_id: parentId })
   }).then(function(r) {
     if (r.ok) {
       ipt.value = ''; ctr.textContent = '0/200';
@@ -148,7 +150,7 @@ btn.addEventListener('click', function() {
 
 function loadMsgs() {
   if (!currentClass) return;
-  api('/api/messages?limit=30&class_code=' + encodeURIComponent(currentClass)).then(function(r) {
+  api('/api/messages?limit=30&class_code=' + encodeURIComponent(currentClass) + '&parent_id=' + parentId).then(function(r) {
     var data = (r && r.data) ? r.data.filter(function(m) { return m.class_code === currentClass; }) : [];
     if (!data.length) { lst.innerHTML = '<div class="emp">暂无留言</div>'; return; }
     lst.innerHTML = data.reverse().map(function(m) {
@@ -173,7 +175,6 @@ function fmt(d) {
   return dt.getHours().toString().padStart(2, '0') + ':' + dt.getMinutes().toString().padStart(2, '0');
 }
 
-// 从 URL 参数恢复班级选择
 (function() {
   var m = location.search.match(/class=([^&]+)/);
   if (m) {
