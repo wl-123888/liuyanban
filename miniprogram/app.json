@@ -1,0 +1,11 @@
+{
+  "pages": ["pages/index/index", "pages/message/message"],
+  "window": {
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#4A90D9",
+    "navigationBarTitleText": "家长留言板",
+    "navigationBarTextStyle": "white"
+  },
+  "cloud": true,
+  "lazyCodeLoading": "requiredComponents"
+}

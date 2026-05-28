@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>留言管理</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;background:#F5F7FA;color:#333;min-height:100vh;display:flex;flex-direction:column;align-items:center}
+.ct{width:100%;max-width:480px;padding:24px 20px 40px}
+.hd{text-align:center;margin-bottom:20px;padding-top:16px}
+.tl{font-size:22px;font-weight:700;color:#4A90D9;margin-bottom:4px}
+.info{font-size:13px;color:#888;margin-bottom:16px}
+.toolbar{display:flex;gap:10px;margin-bottom:16px}
+.toolbar button{flex:1;height:36px;border:none;border-radius:8px;font-size:13px;cursor:pointer;font-weight:500}
+.btn-refresh{background:#4A90D9;color:#fff}
+.btn-delete-all{background:#fff;color:#E74C3C;border:1px solid #E74C3C !important}
+.lst{display:flex;flex-direction:column;gap:8px}
+.itm{background:#fff;border-radius:10px;padding:14px 16px;box-shadow:0 1px 4px rgba(0,0,0,.04);display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.itm-l{flex:1;min-width:0}
+.ctt{font-size:15px;line-height:1.6;word-break:break-all}
+.tme{font-size:11px;color:#bbb;margin-top:6px}
+.del{flex-shrink:0;color:#E74C3C;font-size:13px;cursor:pointer;padding:4px 12px;border:1px solid #E74C3C;border-radius:6px;background:#fff;white-space:nowrap}
+.del:active{background:#FDEAEA}
+.emp{text-align:center;color:#ccc;font-size:14px;padding:32px 0}
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);padding:10px 24px;border-radius:20px;font-size:14px;z-index:999;opacity:0;pointer-events:none;transition:opacity .3s;color:#fff}
+.toast.show{opacity:1}.toast.success{background:#52C41A}.toast.error{background:#E74C3C}
+.back{display:block;text-align:center;font-size:13px;margin-top:20px}
+.back a{color:#888;text-decoration:none}
+</style>
+</head>
+<body>
+<div class="toast" id="toast"></div>
+
+<div class="ct">
+  <div class="hd">
+    <div class="tl">留言管理</div>
+    <div class="info">班级：<span id="clsName">...</span> | 今日 <span id="cnt">0</span> 条</div>
+  </div>
+
+  <div class="toolbar">
+    <button class="btn-refresh" onclick="loadMsgs()">刷新</button>
+    <button class="btn-delete-all" id="btnDelAll" style="display:none" onclick="delAll()">清空今日所有留言</button>
+  </div>
+
+  <div class="lst" id="lst"><div class="emp">加载中...</div></div>
+
+  <div class="back"><a href="/display">返回教室大屏</a></div>
+</div>
+
+<script>
+var lst=document.getElementById('lst'),cnt=document.getElementById('cnt');
+var clsName=document.getElementById('clsName'),toast=document.getElementById('toast');
+var btnDelAll=document.getElementById('btnDelAll');
+var classCode='',messages=[];
+
+function isToday(d){return new Date(d).toDateString()===new Date().toDateString()}
+
+function api(path, options) {
+  return fetch(path, options).then(function(r){return r.json()});
+}
+
+function loadMsgs(){
+  api('/api/classes').then(function(r){
+    classCode = r.classes && r.classes.length > 0 ? (new URLSearchParams(location.search)).get('class') || (r.classes[0]) : '';
+    clsName.textContent = classCode || '全部';
+    return api('/api/messages?limit=200' + (classCode ? '&class_code=' + encodeURIComponent(classCode) : ''));
+  }).then(function(r){
+    messages = (r || []).filter(function(m){return isToday(m.createTime||m.time)});
+    cnt.textContent = messages.length;
+    btnDelAll.style.display = messages.length > 0 ? '' : 'none';
+    if(!messages.length){lst.innerHTML='<div class="emp">今日暂无留言</div>';return}
+    lst.innerHTML = messages.reverse().map(function(m, i){
+      var mid = m._id || m.id || i;
+      return '<div class="itm" id="m' + i + '"><div class="itm-l"><div class="ctt">' + esc(m.content) + '</div><div class="tme">' + fmt(m.createTime||m.time) + '</div></div><span class="del" onclick="delMsg(\'' + escAttr(mid) + '\',' + i + ')">删除</span></div>';
+    }).join('');
+  }).catch(function(){lst.innerHTML='<div class="emp">加载失败</div>'});
+}
+
+function delMsg(id, idx){
+  if(!confirm('确认删除这条留言？'))return;
+  api('/api/admin/delete-message',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({id:id,class_code:classCode})
+  }).then(function(r){
+    if(r.ok||r.local){
+      showToast('已删除','success');
+      var el=document.getElementById('m'+idx);
+      if(el){el.style.opacity='0';el.style.transition='opacity .2s';setTimeout(function(){el.remove();messages.splice(idx,1);cnt.textContent=messages.length;btnDelAll.style.display=messages.length>0?'':'none';if(!messages.length)lst.innerHTML='<div class="emp">今日暂无留言</div>'},200)}
+    }else{showToast('删除失败','error')}
+  }).catch(function(){showToast('网络错误','error')});
+}
+
+function delAll(){
+  if(!confirm('确认删除今日所有 ' + messages.length + ' 条留言？此操作不可恢复！'))return;
+  var ps=messages.map(function(m,i){return delMsg(m._id||m.id||i,i)});
+  Promise.all(ps);
+}
+
+function showToast(m,t){toast.textContent=m;toast.className='toast '+t+' show';setTimeout(function(){toast.className='toast'},2000)}
+function esc(t){var d=document.createElement('div');d.textContent=t;return d.innerHTML}
+function escAttr(t){return t.replace(/'/g,"\\'").replace(/"/g,'&quot;')}
+function fmt(d){var dt=new Date(d);return dt.getHours().toString().padStart(2,'0')+':'+dt.getMinutes().toString().padStart(2,'0')}
+
+loadMsgs();
+</script>
+</body>
+</html>

@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>班级管理 - 家长留言板</title>
+<style>
+:root{--p:#4A90D9;--bg:#F5F7FA;--c:#fff;--t:#333;--t2:#888;--r:14px;--danger:#E74C3C}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--t);min-height:100vh;display:flex;flex-direction:column;align-items:center}
+.ct{width:100%;max-width:480px;padding:24px 20px 40px}
+.hd{text-align:center;margin-bottom:20px;padding-top:16px}
+.ic{font-size:40px;margin-bottom:8px}
+.tl{font-size:22px;font-weight:700;color:var(--p);margin-bottom:4px}
+.sub{font-size:13px;color:var(--t2);margin-bottom:20px}
+.section{background:var(--c);border-radius:var(--r);padding:20px;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:20px}
+.stl{font-size:14px;font-weight:600;color:#666;margin-bottom:12px}
+.addrow{display:flex;gap:10px}
+.inp{flex:1;height:44px;border:1px solid #ddd;border-radius:10px;padding:0 14px;font-size:15px;outline:none;font-family:inherit}
+.inp:focus{border-color:var(--p)}
+.btn-add{height:44px;padding:0 20px;background:var(--p);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;white-space:nowrap}
+.btn-add:active{opacity:.8}
+.clist{margin-top:12px}
+.crow{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border:1px solid #eee;border-radius:10px;margin-bottom:6px;font-size:15px}
+.crow .del{color:var(--danger);cursor:pointer;font-size:13px;padding:4px 10px;border:1px solid var(--danger);border-radius:6px;background:#fff}
+.crow .del:active{background:#FDEAEA}
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);padding:12px 28px;border-radius:24px;font-size:15px;z-index:999;opacity:0;pointer-events:none;transition:opacity .3s;color:#fff}
+.toast.show{opacity:1}.toast.success{background:#52C41A}.toast.error{background:#E74C3C}
+.back{display:block;text-align:center;color:var(--t2);font-size:13px;margin-top:16px;cursor:pointer;text-decoration:none}
+</style>
+</head>
+<body>
+<div class="toast" id="toast"></div>
+
+<div class="ct">
+  <div class="hd">
+    <div class="ic">⚙️</div>
+    <div class="tl">班级管理</div>
+    <div class="sub">添加班级后，家长即可看见</div>
+  </div>
+
+  <div class="section">
+    <div class="stl">添加班级</div>
+    <div class="addrow">
+      <input class="inp" id="inp" placeholder="输入班级名，如：三(1)班" maxlength="20">
+      <button class="btn-add" id="btnAdd">添加</button>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="stl">已有班级（<span id="cnt">0</span>个）</div>
+    <div class="clist" id="clist"><div class="emp" style="color:#ccc;font-size:14px;padding:12px 0;text-align:center">加载中...</div></div>
+  </div>
+
+  <a class="back" href="/display">返回教室大屏</a>
+</div>
+
+<script>
+var inp=document.getElementById('inp'),btnAdd=document.getElementById('btnAdd');
+var clist=document.getElementById('clist'),cnt=document.getElementById('cnt'),toast=document.getElementById('toast');
+
+function api(path, options) {
+  return fetch(path, options).then(function(r) { return r.json(); });
+}
+
+function loadClasses() {
+  api('/api/classes').then(function(r) {
+    var classes = r.classes || [];
+    cnt.textContent = classes.length;
+    if (!classes.length) {
+      clist.innerHTML = '<div style="text-align:center;color:#ccc;font-size:14px;padding:12px 0">暂无班级，请先添加</div>';
+      return;
+    }
+    clist.innerHTML = classes.map(function(c) {
+      return '<div class="crow"><span>' + esc(c) + '</span><span class="del" onclick="removeClass(\'' + escAttr(c) + '\')">删除</span></div>';
+    }).join('');
+  });
+}
+
+function addClass() {
+  var name = inp.value.trim();
+  if (!name) return;
+  btnAdd.disabled = true; btnAdd.textContent = '...';
+  api('/api/admin/add-class', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: name })
+  }).then(function(r) {
+    if (r.ok) {
+      inp.value = '';
+      showToast('已添加: ' + name, 'success');
+      loadClasses();
+    } else {
+      showToast('添加失败: ' + (r.msg || 'error'), 'error');
+    }
+  }).catch(function() {
+    showToast('网络错误', 'error');
+  }).finally(function() {
+    btnAdd.disabled = false; btnAdd.textContent = '添加';
+  });
+}
+
+function removeClass(name) {
+  if (!confirm('确认删除班级：「' + name + '」？')) return;
+  api('/api/admin/remove-class', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: name })
+  }).then(function(r) {
+    if (r.ok) {
+      showToast('已删除: ' + name, 'success');
+      loadClasses();
+    } else {
+      showToast('删除失败: ' + (r.msg || 'error'), 'error');
+    }
+  }).catch(function() {
+    showToast('网络错误', 'error');
+  });
+}
+
+function showToast(m, t) {
+  toast.textContent = m;
+  toast.className = 'toast ' + t + ' show';
+  setTimeout(function() { toast.className = 'toast'; }, 2000);
+}
+
+function esc(t) { var d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+function escAttr(t) { return t.replace(/'/g, "\\'").replace(/"/g, '&quot;'); }
+
+btnAdd.addEventListener('click', addClass);
+inp.addEventListener('keydown', function(e) { if (e.key === 'Enter') addClass(); });
+
+loadClasses();
+</script>
+</body>
+</html>

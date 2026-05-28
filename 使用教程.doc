@@ -1,0 +1,156 @@
+<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]-->
+<style>
+@page { size: A4; margin: 2cm 2cm 2cm 2cm; }
+body { font-family: "Microsoft YaHei","PingFang SC",sans-serif; font-size: 14px; color: #333; line-height: 2; }
+h1 { font-size: 22px; color: #4A90D9; text-align: center; margin-bottom: 8px; }
+h2 { font-size: 17px; color: #4A90D9; margin: 24px 0 10px; border-bottom: 2px solid #E8ECF1; padding-bottom: 5px; }
+h3 { font-size: 15px; color: #555; margin: 16px 0 8px; }
+p { margin: 5px 0; font-size: 14px; }
+li { margin: 4px 0; font-size: 14px; }
+code { background: #F0F4F8; padding: 1px 5px; font-size: 13px; word-break: break-all; }
+table { border-collapse: collapse; width: 100%; margin: 10px 0; }
+td { padding: 6px 10px; border: 1px solid #ddd; font-size: 13px; }
+blockquote { background: #FFF8E1; border-left: 4px solid #FFC107; padding: 8px 14px; margin: 10px 0; font-size: 13px; }
+.q { font-weight: bold; margin: 14px 0 4px; }
+.a { margin: 0 0 14px 14px; color: #555; border-left: 2px solid #4A90D9; padding-left: 10px; }
+.diagram { text-align: center; background: #F0F4F8; border: 1px solid #ddd; padding: 14px; font-size: 12px; font-family: Consolas,"Courier New",monospace; margin: 10px 0; line-height: 2.2; }
+</style>
+</head>
+<body>
+
+<h1>家长留言板 — 使用教程</h1>
+
+<h2>一、系统架构</h2>
+<div class="diagram">
+家长手机(扫码) → GitHub Pages 页面 → 腾讯云SCF → 微信云数据库<br>
+　　　　　　　　　　　　　　　　　　　　　　↓<br>
+教室一体机 ← wechat-server(本地) ← 每10秒同步 ← 微信云数据库
+</div>
+
+<table>
+<tr><td width="90">家长端</td><td>微信扫码打开网页，选班级 → 写留言 → 发送</td></tr>
+<tr><td width="90">教室端</td><td>一体机桌面小组件滚动显示当日留言，每10秒自动刷新</td></tr>
+<tr><td width="90">管理端</td><td>老师在任何地方用浏览器打开后台页面，添加班级、删除留言</td></tr>
+</table>
+
+<h2>二、教室一体机安装</h2>
+
+<h3>首次安装</h3>
+<ol>
+  <li>把 <b>教室一体机-部署包.zip</b> 解压到任意文件夹</li>
+  <li>双击 <code>install.bat</code></li>
+  <li>自动完成三件事：
+    <ul>
+      <li>把文件复制到 <code>C:\Users\你的用户名\ParentBoard</code></li>
+      <li>在桌面创建快捷方式 <b>ParentBoard</b></li>
+      <li>设置开机自启（开机后自动运行）</li>
+    </ul>
+  </li>
+</ol>
+
+<h3>验证是否成功</h3>
+<ul>
+  <li>桌面右下角应出现一个<b>半透明留言板小组件</b></li>
+  <li>浏览器打开 <code>http://localhost:58080/display</code> 能看到黑色大屏显示页面</li>
+  <li>如果小组件没弹出，到 <code>C:\Users\你的用户名\ParentBoard</code> 文件夹双击 <code>start.vbs</code></li>
+</ul>
+
+<h3>卸载</h3>
+<p>双击 <code>uninstall.bat</code>，自动清理所有文件和快捷方式。</p>
+
+<h2>三、家长如何使用</h2>
+
+<h3>入口</h3>
+<p>家长用微信扫码打开：<code>https://wl-123888.github.io/liuyanban/</code></p>
+
+<h3>操作步骤</h3>
+<ol>
+  <li>进入页面，看到班级列表</li>
+  <li>点击孩子所在的班级</li>
+  <li>输入留言（限200字），点击"发送到教室大屏"</li>
+  <li>发送成功后，在"我的留言"区域只能看到<b>自己发的留言</b>（看不到其他家长的）</li>
+  <li>点击左上角"← 切换班级"可换班级</li>
+</ol>
+
+<h3>隐私说明</h3>
+<ul>
+  <li>每位家长自动分配一个匿名标识，存储在手机浏览器中</li>
+  <li>家长只能看到自己的留言，看不到别人的</li>
+  <li>留言内容仅本班家长和老师可见</li>
+</ul>
+
+<h2>四、远程管理后台（老师用）</h2>
+
+<h3>入口</h3>
+<p>老师在任何地方用浏览器打开：<code>https://wl-123888.github.io/liuyanban/admin-remote</code></p>
+<p>无需和一体机在同一网络，能上网就能管理。页面有两个标签：</p>
+<ul>
+  <li><b>留言管理</b> — 选择班级，查看/删除当天留言，支持一键清空</li>
+  <li><b>班级管理</b> — 添加/删除班级，家长端立即生效</li>
+</ul>
+
+<h3>添加班级</h3>
+<ol>
+  <li>切换到"班级管理"标签页</li>
+  <li>在输入框输入班级名称（如"三年级(1)班"）</li>
+  <li>点击"添加"按钮</li>
+  <li>添加后立即生效，家长页面刷新后即可看到新班级</li>
+</ol>
+
+<h3>删除班级</h3>
+<ol>
+  <li>在"班级管理"标签页的班级列表中，点击要删除的班级后面的"×"按钮</li>
+  <li>确认后删除</li>
+</ol>
+<blockquote>注意：删除班级不会删除该班级已有的留言记录。</blockquote>
+
+<h3>删除留言</h3>
+<ol>
+  <li>在"留言管理"标签页，下拉选择要管理的班级</li>
+  <li>点击"刷新"，显示该班级今日所有留言</li>
+  <li>每条留言右下角有"删除"按钮，点击即可删除</li>
+  <li>如需批量清理，点击"清空今日全部"按钮</li>
+</ol>
+<blockquote>注意：只能删除当天留言，删除操作不可恢复。</blockquote>
+
+<h2>五、教室大屏小组件</h2>
+<ul>
+  <li>半透明深色背景，显示当天所有班级的留言</li>
+  <li>留言以跑马灯形式向上滚动</li>
+  <li>鼠标移上去暂停滚动，移开继续</li>
+  <li>小组件置于桌面层级，不遮挡课件窗口</li>
+  <li>任务管理器找到 <code>wechat-board-server.exe</code> 可结束进程</li>
+  <li>双击 <code>start.vbs</code> 可重新启动</li>
+</ul>
+
+<h2>六、常见问题</h2>
+
+<p class="q">Q：家长扫码后看不到班级？</p>
+<p class="a">检查远程管理后台"班级管理"标签中是否已添加该班级。添加后刷新家长页面即可。</p>
+
+<p class="q">Q：家长发送留言后一体机不显示？</p>
+<p class="a">一体机每10秒与云端同步一次，稍等片刻即可。超过1分钟不显示，检查一体机网络连接是否正常。</p>
+
+<p class="q">Q：小组件不弹出来？</p>
+<p class="a">到 <code>C:\Users\你的用户名\ParentBoard</code> 双击 <code>start.vbs</code>。如果还不行，检查 <code>config.json</code> 中 <code>appid</code>、<code>secret</code>、<code>env_id</code> 是否填写正确。</p>
+
+<p class="q">Q：如何修改一体机显示的班级？</p>
+<p class="a">编辑 <code>C:\Users\你的用户名\ParentBoard\config.json</code>，修改 <code>class_code</code> 字段，然后重启服务。</p>
+
+<p class="q">Q：怎么查看一体机的 IP 地址？</p>
+<p class="a">在一体机上按 Win+R，输入 <code>cmd</code> 回车，在黑色窗口输入 <code>ipconfig</code>，找到"IPv4 地址"那行，类似 <code>192.168.x.x</code> 的就是内网 IP。</p>
+
+<p class="q">Q：班级有多个，每班一台一体机怎么配置？</p>
+<p class="a">编辑每台一体机的 <code>config.json</code>，把 <code>class_code</code> 设为对应的班级名称即可，各显示各的。</p>
+
+<p class="q">Q：过了一天的留言还能看到吗？</p>
+<p class="a">教室大屏只显示当天留言。云端数据库保留所有历史记录，但前端不展示。</p>
+
+<p class="q">Q：怎么生成家长扫码用的二维码？</p>
+<p class="a">打开任意二维码生成网站，输入网址 <code>https://wl-123888.github.io/liuyanban/</code> 即可生成二维码图片，打印出来贴在教室门口供家长扫码。</p>
+
+</body>
+</html>

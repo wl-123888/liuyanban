@@ -1,0 +1,15 @@
+<view class="ct">
+  <view class="hd">
+    <text class="ic">💬</text>
+    <view class="tl">家长留言板</view>
+    <view class="sub">选择孩子所在班级</view>
+  </view>
+  <view class="clist">
+    <block wx:for="{{classes}}" wx:key="*this">
+      <view class="citem" bindtap="selectClass" data-class="{{item}}">{{item}}<text wx:if="{{item===saved}}" style="font-size:11px;color:#999"> 上次</text></view>
+    </block>
+    <view wx:if="{{classes.length===0}}" class="emp">暂无可选班级</view>
+    <view class="citem cadd" bindtap="addNewClass">+ 其他班级</view>
+  </view>
+  <view class="note">留言实时显示在教室大屏上</view>
+</view>

@@ -1,0 +1,26 @@
+<view class="ct">
+  <view class="hd">
+    <text class="ic">💬</text>
+    <view class="tl">家长留言板</view>
+    <view class="sub">{{class_code}}</view>
+  </view>
+  <view class="icd">
+    <view class="cod">当前班级：{{class_code}}</view>
+    <textarea class="txt" placeholder="输入留言，如：小明放学在校门口等你…" maxlength="200" value="{{content}}" bindinput="onInput"/>
+    <view class="ft">
+      <text class="ctr {{count>=200?'full':''}}">{{count}}/200</text>
+      <text class="cback" bindtap="goBack">← 切换班级</text>
+    </view>
+  </view>
+  <button class="btn" disabled="{{!canSend}}" bindtap="send">发送到教室大屏</button>
+  <view class="rec">
+    <view class="rtl">📋 最近留言</view>
+    <view class="lst">
+      <block wx:for="{{messages}}" wx:key="id">
+        <view class="itm"><view class="ctt">{{item.content}}</view><view class="tme">{{item.time}}</view></view>
+      </block>
+      <view wx:if="{{messages.length===0}}" class="emp">暂无留言</view>
+    </view>
+  </view>
+  <view class="note">请勿发送孩子全名，建议用称呼（如"小宝"）</view>
+</view>

@@ -1,0 +1,45 @@
+[
+  {
+    "_id": "e8a9f9876a14a0af00a624f37a90f0b8",
+    "content": "你好",
+    "class_code": "五（10)班",
+    "createTime": "2026-05-25T19:19:11.811Z"
+  },
+  {
+    "_id": "9e779e646a15c17300c5c2022ae5eb22",
+    "content": "SCF��������",
+    "class_code": "�壨10)��",
+    "createTime": "2026-05-26T15:51:15.756Z"
+  },
+  {
+    "content": "你好",
+    "class_code": "五（10)班",
+    "time": "2026-05-26T17:19:10.692Z",
+    "createTime": "2026-05-26T17:19:10.692Z",
+    "_id": "local_1779815950692_t8ggfn"
+  },
+  {
+    "_id": "21dd03466a15d60f00ca804f2c0509d7",
+    "content": "你好",
+    "class_code": "五（10)班",
+    "createTime": "2026-05-26T17:19:11.201Z"
+  },
+  {
+    "_id": "c5c2a88a6a16ddc000e9816431b5bd47",
+    "content": "您好",
+    "class_code": "五（10)班",
+    "createTime": "2026-05-27T12:04:16.876Z"
+  },
+  {
+    "_id": "bff52e9f6a16de1f00e800a83d6753df",
+    "content": "halo",
+    "class_code": "五（10)班",
+    "createTime": "2026-05-27T12:05:51.476Z"
+  },
+  {
+    "_id": "669eebf36a16e1b900e9c44a689470f9",
+    "content": "hi",
+    "class_code": "五（10)班",
+    "createTime": "2026-05-27T12:21:12.993Z"
+  }
+]
