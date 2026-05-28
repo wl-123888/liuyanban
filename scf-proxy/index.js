@@ -60,6 +60,15 @@ function dbDelete(queryStr) {
   });
 }
 
+function dbAdd(queryStr) {
+  return getAccessToken().then(function (token) {
+    return httpPost('api.weixin.qq.com', '/tcb/databaseadd?access_token=' + token, JSON.stringify({ env: ENV_ID, query: queryStr }));
+  }).then(function (j) {
+    if (j.errcode === 0) return j;
+    throw new Error('db add fail: ' + JSON.stringify(j));
+  });
+}
+
 function escDQ(s) { return s.replace(/\\/g, '\\\\').replace(/"/g, '\\"'); }
 
 function corsHeaders() {
@@ -197,7 +206,7 @@ exports.main_handler = function (event, context) {
 
   // GET /api/echo — debug endpoint to verify SCF deployment version
   if (epath === '/api/echo') {
-    return jsonReply({ ver: '2026-05-28-filter', query: query });
+    return jsonReply({ ver: '2026-05-29-dbadd', query: query });
   }
 
   // POST /api/submit
@@ -205,11 +214,14 @@ exports.main_handler = function (event, context) {
     try {
       var body = typeof event.body === 'string' ? JSON.parse(event.body) : (event.body || {});
       if (!body.content || !body.content.trim()) return jsonReply({ ok: false, msg: 'empty content' }, 400);
-      return callCloudFunction('parentAPI', {
-        action: 'submitMessage',
-        data: { content: body.content.trim(), class_code: body.class_code || '', parent_id: body.parent_id || '' }
-      }).then(function (r) { return jsonReply(r); })
-        .catch(function (e) { return jsonReply({ ok: false, msg: e.message }, 500); });
+      var now = new Date().toISOString();
+      var cc = escDQ(body.class_code || '');
+      var ct = escDQ(body.content.trim());
+      var pid = escDQ(body.parent_id || '');
+      var addQuery = 'db.collection("messages").add({data:[{content:"' + ct + '",class_code:"' + cc + '",parent_id:"' + pid + '",createTime:"' + now + '"}]})';
+      return dbAdd(addQuery).then(function (r) {
+        return jsonReply({ ok: true, id: r.id_list ? r.id_list[0] : 'ok' });
+      }).catch(function (e) { return jsonReply({ ok: false, msg: e.message }, 500); });
     } catch (e) { return jsonReply({ ok: false, msg: e.message }, 400); }
   }
 

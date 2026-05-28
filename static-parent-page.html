@@ -150,7 +150,7 @@ btn.addEventListener('click', function() {
 function loadMsgs() {
   if (!currentClass) return;
   api('/api/messages?limit=30&class_code=' + encodeURIComponent(currentClass) + '&parent_id=' + parentId).then(function(r) {
-    var data = (r && r.data) ? r.data.filter(function(m) { return m.class_code === currentClass && (!m.parent_id || m.parent_id === parentId); }) : [];
+    var data = (r && r.data) ? r.data.filter(function(m) { return m.class_code === currentClass && m.parent_id === parentId; }) : [];
     if (!data.length) { lst.innerHTML = '<div class="emp">暂无留言</div>'; return; }
     lst.innerHTML = data.reverse().map(function(m) {
       return '<div class="itm"><div class="ctt">' + esc(m.content) + '</div><div class="tme">' + fmt(m.createTime || m.time) + '</div></div>';
