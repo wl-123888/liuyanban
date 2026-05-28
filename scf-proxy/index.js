@@ -228,5 +228,22 @@ exports.main_handler = function (event, context) {
     } catch (e) { return jsonReply({ ok: false, msg: e.message }, 400); }
   }
 
+  // GET /api/debug-markers (shows raw __CLASS__/__UNCLASS__ markers in DB)
+  if (epath === '/api/debug-markers') {
+    return callCloudFunction('parentAPI', { action: 'getMessages', data: { limit: 500 } }).then(function (r) {
+      var markers = [];
+      if (r && r.data) {
+        r.data.forEach(function (m) {
+          if (m.content === '__CLASS__' || m.content === '__UNCLASS__') {
+            markers.push({ content: m.content, class_code: m.class_code, createTime: m.createTime });
+          }
+        });
+      }
+      return jsonReply({ ok: true, totalMessages: r.data ? r.data.length : 0, markers: markers, ver: 5 });
+    }).catch(function (e) {
+      return jsonReply({ ok: false, msg: e.message }, 500);
+    });
+  }
+
   return jsonReply({ ok: false, msg: 'not found' }, 404);
 };
