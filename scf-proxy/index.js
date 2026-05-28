@@ -131,6 +131,8 @@ function isValidClassName(c) {
 }
 
 exports.main_handler = function (event, context) {
+  console.log('SCF event:', JSON.stringify({ path: event.path, method: event.httpMethod, keys: Object.keys(event) }));
+  try {
   var method = (event.httpMethod || 'GET').toUpperCase();
   var epath = event.path || '/';
   var query = event.queryStringParameters || event.queryString || {};
@@ -291,4 +293,8 @@ exports.main_handler = function (event, context) {
   }
 
   return jsonReply({ ok: false, msg: 'not found' }, 404);
+  } catch (e) {
+    console.log('SCF error:', e.message, e.stack);
+    return jsonReply({ ok: false, msg: 'internal error: ' + e.message }, 500);
+  }
 };
