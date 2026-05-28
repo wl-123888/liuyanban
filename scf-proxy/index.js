@@ -125,26 +125,27 @@ exports.main_handler = function (event, context) {
 
   // GET /api/classes
   if (epath === '/api/classes') {
-    // Always recover from DB markers to keep multiple SCF instances consistent
-    return callCloudFunction('parentAPI', { action: 'getMessages', data: { limit: 500 } }).then(function (r) {
+    // Query DB directly for __CLASS__ and __UNCLASS__ markers (bypasses cloud fn limits)
+    return dbQuery('db.collection("messages").where({content:db.command.in(["__CLASS__","__UNCLASS__"])}).limit(100).get()').then(function (r) {
       var classes = [];
       if (r && r.data) {
         var clsCount = {}, unclassCount = {};
-        r.data.forEach(function (m) {
-          var cc = m.class_code;
-          if (!cc || !isValidClassName(cc)) return;
-          if (m.content === '__CLASS__') clsCount[cc] = (clsCount[cc] || 0) + 1;
-          if (m.content === '__UNCLASS__') unclassCount[cc] = (unclassCount[cc] || 0) + 1;
+        r.data.forEach(function (raw) {
+          try {
+            var m = typeof raw === 'string' ? JSON.parse(raw) : raw;
+            var cc = m.class_code;
+            if (!cc || !isValidClassName(cc)) return;
+            if (m.content === '__CLASS__') clsCount[cc] = (clsCount[cc] || 0) + 1;
+            if (m.content === '__UNCLASS__') unclassCount[cc] = (unclassCount[cc] || 0) + 1;
+          } catch (e) {}
         });
         Object.keys(clsCount).forEach(function (c) {
           if ((clsCount[c] || 0) > (unclassCount[c] || 0)) classes.push(c);
         });
       }
       managedClasses = classes;
-      classesRecovered = true;
       return jsonReply({ ok: true, data: classes, ver: 5 });
     }).catch(function () {
-      // Fallback to in-memory list if cloud function fails
       return jsonReply({ ok: true, data: managedClasses.slice(), ver: 5 });
     });
   }
