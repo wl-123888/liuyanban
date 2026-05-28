@@ -125,6 +125,8 @@ function loadMsgs(){
   if (cls) url += '&class_code=' + encodeURIComponent(cls);
   api(url).then(function(r){
     var msgs = (r && r.data) ? r.data.filter(function(m){ return isToday(m.createTime||m.time); }) : [];
+    // Client-side class filter (bypasses SCF index issue)
+    if (cls) msgs = msgs.filter(function(m) { return m.class_code === cls; });
     var lst = document.getElementById('lst');
     var cnt = document.getElementById('cnt');
     var btnClear = document.getElementById('btnClear');

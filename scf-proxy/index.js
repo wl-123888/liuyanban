@@ -173,8 +173,9 @@ exports.main_handler = function (event, context) {
         // Filter out system marker messages from display
         r.data = r.data.filter(function (m) { return !m.content || (m.content.indexOf('__CLASS__') !== 0 && m.content.indexOf('__UNCLASS__') !== 0); });
         // Filter by class_code on SCF side (cloud fn where may be ignored due to missing index)
-        if (query.class_code) {
-          r.data = r.data.filter(function (m) { return m.class_code === query.class_code; });
+        var qcc = query.class_code;
+        if (qcc) {
+          r.data = r.data.filter(function (m) { return m.class_code === qcc; });
         }
         // Parent privacy filter
         if (query.parent_id) {
@@ -183,6 +184,11 @@ exports.main_handler = function (event, context) {
       }
       return jsonReply(r);
     }).catch(function (e) { return jsonReply({ ok: false, msg: e.message }, 500); });
+  }
+
+  // GET /api/echo — debug endpoint to verify SCF deployment version
+  if (epath === '/api/echo') {
+    return jsonReply({ ver: '2026-05-28-filter', query: query });
   }
 
   // POST /api/submit
