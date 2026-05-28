@@ -79,6 +79,19 @@ function jsonReply(body, code) {
   };
 }
 
+function htmlReply(html) {
+  return {
+    isBase64Encoded: false,
+    statusCode: 200,
+    headers: {
+      'Content-Type': 'text/html;charset=utf-8',
+      'Content-Disposition': 'inline',
+      'Access-Control-Allow-Origin': '*'
+    },
+    body: html
+  };
+}
+
 // In-memory class list (survives warm invocations)
 var managedClasses = [];
 var classesRecovered = false;
@@ -154,11 +167,15 @@ exports.main_handler = function (event, context) {
   if (epath === '/api/messages') {
     return callCloudFunction('parentAPI', {
       action: 'getMessages',
-      data: { class_code: query.class_code || '', limit: parseInt(query.limit) || 30 }
+      data: { limit: 200 }
     }).then(function (r) {
       if (r && r.data) {
         // Filter out system marker messages from display
         r.data = r.data.filter(function (m) { return !m.content || (m.content.indexOf('__CLASS__') !== 0 && m.content.indexOf('__UNCLASS__') !== 0); });
+        // Filter by class_code on SCF side (cloud fn where may be ignored due to missing index)
+        if (query.class_code) {
+          r.data = r.data.filter(function (m) { return m.class_code === query.class_code; });
+        }
         // Parent privacy filter
         if (query.parent_id) {
           r.data = r.data.filter(function (m) { return m.parent_id === query.parent_id; });
