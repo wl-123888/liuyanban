@@ -10,7 +10,7 @@
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;background:#F5F7FA;color:#333;min-height:100vh;display:flex;flex-direction:column;align-items:center}
 .ct{width:100%;max-width:480px;padding:24px 20px 40px}
-.hd{text-align:center;margin-bottom:20px;padding-top:16px}
+.hd{text-align:center;margin-bottom:20px;padding-top:16px;position:relative}
 .tl{font-size:22px;font-weight:700;color:#4A90D9;margin-bottom:4px}
 .tabs{display:flex;gap:0;margin-bottom:20px;background:#E8ECF1;border-radius:10px;padding:3px}
 .tab{flex:1;text-align:center;padding:10px 0;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;color:#888;transition:all .2s}
@@ -43,15 +43,37 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);padding:10px 24px;border-radius:20px;font-size:14px;z-index:999;opacity:0;pointer-events:none;transition:opacity .3s;color:#fff}
 .toast.show{opacity:1}.toast.success{background:#52C41A}.toast.error{background:#E74C3C}
 .about{text-align:center;font-size:11px;color:#bbb;margin-top:24px}
+/* Login */
+.login-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:#F5F7FA;display:flex;align-items:center;justify-content:center;z-index:1000}
+.login-box{background:#fff;border-radius:14px;padding:36px 28px;box-shadow:0 4px 24px rgba(0,0,0,.08);width:100%;max-width:340px;text-align:center}
+.login-box h2{font-size:20px;color:#4A90D9;margin-bottom:6px}
+.login-box .sub{font-size:13px;color:#aaa;margin-bottom:24px}
+.login-box input{width:100%;height:46px;border:1px solid #ddd;border-radius:10px;padding:0 14px;font-size:15px;outline:none;text-align:center;letter-spacing:4px}
+.login-box input:focus{border-color:#4A90D9}
+.login-box .err{color:#E74C3C;font-size:13px;margin-top:10px;display:none}
+.login-box button{width:100%;height:46px;margin-top:18px;background:linear-gradient(135deg,#4A90D9,#357ABD);color:#fff;border:none;border-radius:10px;font-size:16px;font-weight:600;cursor:pointer}
+.login-box button:active{transform:scale(.97)}
+.logout-btn{position:absolute;top:16px;right:16px;font-size:12px;color:#999;cursor:pointer;background:none;border:none}
 @media (max-width:400px){.ct{padding:16px 14px 32px}}
 </style>
 </head>
 <body>
 <div class="toast" id="toast"></div>
 
-<div class="ct">
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-box">
+    <h2>留言管理后台</h2>
+    <div class="sub">请输入管理密码</div>
+    <input type="password" id="pwdInput" placeholder="密码" maxlength="20">
+    <div class="err" id="pwdErr">密码错误，请重试</div>
+    <button onclick="doLogin()">进入后台</button>
+  </div>
+</div>
+
+<div class="ct" id="mainCt" style="display:none">
   <div class="hd">
     <div class="tl">留言管理后台</div>
+    <button class="logout-btn" onclick="doLogout()" title="退出登录">退出</button>
   </div>
 
   <div class="tabs">
@@ -87,9 +109,48 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 </div>
 
 <script>
+var AUTH_KEY = 'gl_auth_v2';
 var API = 'https://1437238162-ho33k071it.ap-guangzhou.tencentscf.com';
 var toast = document.getElementById('toast');
 var currentTab = 'msgs';
+
+// ====== Login ======
+function checkAuth() {
+  return localStorage.getItem(AUTH_KEY) === '1';
+}
+
+function doLogin() {
+  var pwd = document.getElementById('pwdInput').value;
+  if (pwd === 'zxy123456') {
+    localStorage.setItem(AUTH_KEY, '1');
+    document.getElementById('loginOverlay').style.display = 'none';
+    document.getElementById('mainCt').style.display = '';
+    document.getElementById('pwdErr').style.display = 'none';
+    loadClasses();
+    loadClassList();
+  } else {
+    document.getElementById('pwdErr').style.display = 'block';
+  }
+}
+
+function doLogout() {
+  localStorage.removeItem(AUTH_KEY);
+  document.getElementById('loginOverlay').style.display = '';
+  document.getElementById('mainCt').style.display = 'none';
+}
+
+document.getElementById('pwdInput').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') doLogin();
+});
+
+// Auto-login if already authenticated
+if (checkAuth()) {
+  document.getElementById('loginOverlay').style.display = 'none';
+  document.getElementById('mainCt').style.display = '';
+} else {
+  document.getElementById('loginOverlay').style.display = '';
+  document.getElementById('mainCt').style.display = 'none';
+}
 
 function switchTab(t) {
   currentTab = t;
